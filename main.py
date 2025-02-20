@@ -129,8 +129,7 @@ with col_prev:
     if st.session_state.current_page > 1:
         if st.button("⬅️ Previous"):
             st.session_state.current_page -= 1
-            st.experimental_rerun()
-
+            st.session_state.current_page = st.session_state.current_page
 with col_page:
     st.markdown(f"**Page {st.session_state.current_page} of {total_pages}**")
 
@@ -138,7 +137,7 @@ with col_next:
     if st.session_state.current_page < total_pages:
         if st.button("➡️ Next"):
             st.session_state.current_page += 1
-            st.experimental_rerun()
+            st.session_state.current_page = st.session_state.current_page
 
 # Determine Start and End Index for Pagination
 start_idx = (st.session_state.current_page - 1) * items_per_page
