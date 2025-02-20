@@ -271,7 +271,7 @@ for idx, task in filtered_tasks.iloc[start_idx:end_idx].iterrows():
                 "Status",
                 options=["Pending", "In Progress", "Completed"],
                 index=["Pending", "In Progress", "Completed"].index(task['status']),
-                key=f"status_{idx}",
+                key=f"status_{st.session_state.current_page}_{idx}",
                 label_visibility="collapsed"
             )
             if status != task['status']:
