@@ -17,13 +17,15 @@ def display_category_distribution(df):
 
 def display_priority_distribution(df):
     """Display priority distribution chart"""
-    priority_counts = df['priority'].value_counts()
-    
+    priority_counts = df['priority'].value_counts().reset_index()
+    priority_counts.columns = ['Priority', 'Count']
+
     fig = px.bar(
-        x=priority_counts.index,
-        y=priority_counts.values,
+        priority_counts,
+        x='Priority',
+        y='Count',
         title="Tasks by Priority",
-        color=priority_counts.index,
+        color='Priority',
         color_discrete_map={
             'Urgent': '#ff4b4b',
             'High': '#ffa07a',
