@@ -233,3 +233,82 @@ if len(filtered_tasks) > 0:
     """)
 else:
     st.info("No tasks available to display statistics")
+
+# Pagination Settings
+items_per_page = 5
+total_tasks = len(filtered_tasks)
+total_pages = (total_tasks // items_per_page) + (1 if total_tasks % items_per_page > 0 else 0)
+
+# Initialize session state for pagination
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 1
+
+# Page Navigation
+col_prev, col_page, col_next = st.columns([1, 2, 1])
+
+with col_prev:
+    if st.button("⬅️ Previous", disabled=(st.session_state.current_page <= 1)):
+        st.session_state.current_page -= 1
+
+with col_page:
+    st.markdown(f"**Page {st.session_state.current_page} of {total_pages}**")
+
+with col_next:
+    if st.button("➡️ Next", disabled=(st.session_state.current_page >= total_pages)):
+        st.session_state.current_page += 1
+
+# Determine Start and End Index for Pagination
+start_idx = (st.session_state.current_page - 1) * items_per_page
+end_idx = start_idx + items_per_page
+
+# Display Tasks for Current Page
+for idx, task in filtered_tasks.iloc[start_idx:end_idx].iterrows():
+    with st.container():
+        col_status, col_content, col_time = st.columns([0.2, 0.6, 0.2])
+
+        with col_status:
+            status = st.selectbox(
+                "Status",
+                options=["Pending", "In Progress", "Completed"],
+                index=["Pending", "In Progress", "Completed"].index(task['status']),
+                key=f"status_{idx}",
+                label_visibility="collapsed"
+            )
+            if status != task['status']:
+                st.session_state.tasks = dh.update_task_status(idx, status)
+
+        with col_content:
+            task_color = utils.get_priority_color(task['priority'])
+            scheduled_start_time = pd.to_datetime(task['scheduled_start']).strftime('%Y-%m-%d %H:%M') if pd.notnull(task.get('scheduled_start')) else 'N/A'
+
+            st.markdown(
+                f"""
+                <div style="border-left: 5px solid {task_color}; padding-left: 10px;">
+                <h4>{task['name']}</h4>
+                <p><strong>Category:</strong> {task['category']} | 
+                <strong>Priority:</strong> <span style="color: {task_color}">{task['priority']}</span></p>
+                <p><strong>Due:</strong> {task['due_date']} |
+                <strong>Created:</strong> {pd.to_datetime(task['created_at']).strftime('%Y-%m-%d %H:%M')} |
+                <strong>Scheduled Start:</strong> {scheduled_start_time}</p>
+                <p>{task['description']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with col_time:
+            if task['status'] == "Completed":
+                time_spent = task['time_spent']
+                completed_at = pd.to_datetime(task['completed_at']).strftime('%Y-%m-%d %H:%M') if pd.notnull(task['completed_at']) else 'N/A'
+                st.write(f"✅ Completed at: {completed_at}")
+                st.write(f"⏱️ Time spent: {time_spent:.1f} min")
+            elif task['status'] == "In Progress":
+                if not pd.isna(task['started_at']):
+                    current_time = datetime.now()
+                    started_time = pd.to_datetime(task['started_at'])
+                    started_at = started_time.strftime('%Y-%m-%d %H:%M')
+                    elapsed_time = (current_time - started_time).total_seconds() / 60
+                    st.write(f"🚀 Started at: {started_at}")
+                    st.write(f"⏱️ Time elapsed: {elapsed_time:.1f} min")
+
+        st.markdown("---")
