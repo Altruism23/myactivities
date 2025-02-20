@@ -32,11 +32,18 @@ with st.sidebar:
         "Priority",
         ["Urgent", "High", "Normal", "Low"]
     )
+
+    # Add date and time inputs
     due_date = st.date_input("Due Date")
+    scheduled_start = st.time_input("Scheduled Start Time", value=datetime.now().time())
+
     description = st.text_area("Description")
 
     if st.button("Add Task"):
         if task_name:
+            # Combine date and time for scheduled start
+            scheduled_datetime = datetime.combine(due_date, scheduled_start)
+
             new_task = {
                 'name': task_name,
                 'category': category,
@@ -44,7 +51,8 @@ with st.sidebar:
                 'due_date': due_date,
                 'description': description,
                 'status': 'Pending',
-                'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'scheduled_start': scheduled_datetime.strftime("%Y-%m-%d %H:%M:%S")
             }
             st.session_state.tasks = dh.add_task(new_task)
             st.success("Task added successfully!")
@@ -104,6 +112,8 @@ with col1:
 
             with col_content:
                 task_color = utils.get_priority_color(task['priority'])
+                scheduled_start_time = pd.to_datetime(task['scheduled_start']).strftime('%Y-%m-%d %H:%M') if pd.notnull(task.get('scheduled_start')) else 'N/A'
+
                 st.markdown(
                     f"""
                     <div style="border-left: 5px solid {task_color}; padding-left: 10px;">
@@ -111,7 +121,8 @@ with col1:
                     <p><strong>Category:</strong> {task['category']} | 
                     <strong>Priority:</strong> <span style="color: {task_color}">{task['priority']}</span></p>
                     <p><strong>Due:</strong> {task['due_date']} |
-                    <strong>Created:</strong> {pd.to_datetime(task['created_at']).strftime('%Y-%m-%d %H:%M')}</p>
+                    <strong>Created:</strong> {pd.to_datetime(task['created_at']).strftime('%Y-%m-%d %H:%M')} |
+                    <strong>Scheduled Start:</strong> {scheduled_start_time}</p>
                     <p>{task['description']}</p>
                     </div>
                     """,

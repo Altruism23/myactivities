@@ -9,17 +9,19 @@ def load_tasks():
     if os.path.exists(TASKS_FILE):
         try:
             # Try to read with all columns
-            return pd.read_csv(TASKS_FILE, parse_dates=['due_date', 'created_at', 'started_at', 'completed_at'])
+            return pd.read_csv(TASKS_FILE, parse_dates=['due_date', 'created_at', 'started_at', 'completed_at', 'scheduled_start'])
         except ValueError:
             # If timing columns don't exist, read basic columns and add timing columns
             df = pd.read_csv(TASKS_FILE, parse_dates=['due_date', 'created_at'])
             df['started_at'] = None
             df['completed_at'] = None
             df['time_spent'] = 0
+            df['scheduled_start'] = None
             return df
     return pd.DataFrame(columns=[
         'name', 'category', 'priority', 'due_date', 'description',
-        'status', 'created_at', 'started_at', 'completed_at', 'time_spent'
+        'status', 'created_at', 'started_at', 'completed_at', 'time_spent',
+        'scheduled_start'
     ])
 
 def save_tasks(tasks_df):
