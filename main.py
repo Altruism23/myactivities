@@ -122,22 +122,30 @@ total_pages = (total_tasks // items_per_page) + (1 if total_tasks % items_per_pa
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 1
 
-# Pagination Navigation
+# Pagination Settings
+items_per_page = 5
+total_tasks = len(filtered_tasks)
+total_pages = (total_tasks // items_per_page) + (1 if total_tasks % items_per_page > 0 else 0)
+
+# Initialize session state for pagination
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 1
+
+# Page Navigation
 col_prev, col_page, col_next = st.columns([1, 2, 1])
 
-with col_prev:
-    if st.session_state.current_page > 1:
-        if st.button("⬅️ Previous"):
-            st.session_state.current_page -= 1
-            st.session_state.current_page = st.session_state.current_page
+# Update current page BEFORE rendering
+if st.session_state.current_page < total_pages:
+    if col_next.button("➡️ Next"):
+        st.session_state.current_page += 1
+
+if st.session_state.current_page > 1:
+    if col_prev.button("⬅️ Previous"):
+        st.session_state.current_page -= 1
+
+# Display current page number
 with col_page:
     st.markdown(f"**Page {st.session_state.current_page} of {total_pages}**")
-
-with col_next:
-    if st.session_state.current_page < total_pages:
-        if st.button("➡️ Next"):
-            st.session_state.current_page += 1
-            st.session_state.current_page = st.session_state.current_page
 
 # Determine Start and End Index for Pagination
 start_idx = (st.session_state.current_page - 1) * items_per_page
