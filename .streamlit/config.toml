@@ -1,8 +1,7 @@
 [server]
 headless = true
-address = "0.0.0.0"
+address = "localhost"
 port = 5000
-
 [theme]
 primaryColor = "#FF4B4B"
 backgroundColor = "#FFFFFF"
