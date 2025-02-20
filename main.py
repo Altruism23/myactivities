@@ -132,7 +132,7 @@ with col1:
             with col_time:
                 if task['status'] == "Completed":
                     time_spent = task['time_spent']
-                    completed_at = pd.to_datetime(task['completed_at']).strftime('%Y-%m-%d %H:%M')
+                    completed_at = pd.to_datetime(task['completed_at']).strftime('%Y-%m-%d %H:%M') if pd.notnull(task['completed_at']) else 'N/A'
                     st.write(f"✅ Completed at: {completed_at}")
                     st.write(f"⏱️ Time spent: {time_spent:.1f} min")
                 elif task['status'] == "In Progress":
