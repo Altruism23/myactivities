@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import data_handler as dh
 import visualizations as viz
 import utils
@@ -15,9 +15,58 @@ st.set_page_config(
 # Initialize session state
 if 'tasks' not in st.session_state:
     st.session_state.tasks = dh.load_tasks()
+if 'selected_date' not in st.session_state:
+    st.session_state.selected_date = datetime.now().date()
 
 # Main title
 st.title("📝 Daily Activity Tracker")
+
+# Calendar View
+st.subheader("📅 Calendar View")
+cal_col1, cal_col2 = st.columns([1, 3])
+
+with cal_col1:
+    # Calendar date picker
+    selected_date = st.date_input(
+        "Select Date",
+        value=st.session_state.selected_date,
+        key="calendar_date"
+    )
+    st.session_state.selected_date = selected_date
+
+    # Quick date navigation
+    if st.button("⬅️ Previous Day"):
+        st.session_state.selected_date -= timedelta(days=1)
+        st.rerun()
+    if st.button("➡️ Next Day"):
+        st.session_state.selected_date += timedelta(days=1)
+        st.rerun()
+    if st.button("📍 Today"):
+        st.session_state.selected_date = datetime.now().date()
+        st.rerun()
+
+with cal_col2:
+    # Filter tasks for selected date
+    daily_tasks = st.session_state.tasks[
+        pd.to_datetime(st.session_state.tasks['scheduled_start']).dt.date == selected_date
+    ]
+
+    if len(daily_tasks) > 0:
+        st.write(f"Tasks scheduled for {selected_date.strftime('%B %d, %Y')}:")
+        for _, task in daily_tasks.iterrows():
+            scheduled_time = pd.to_datetime(task['scheduled_start']).strftime('%H:%M')
+            status_color = {
+                'Completed': '🟢',
+                'In Progress': '🟡',
+                'Pending': '⚪'
+            }.get(task['status'], '⚪')
+
+            st.markdown(f"""
+            {status_color} **{scheduled_time}** - {task['name']}  
+            Priority: {task['priority']} | Category: {task['category']}  
+            """)
+    else:
+        st.info(f"No tasks scheduled for {selected_date.strftime('%B %d, %Y')}")
 
 # Sidebar for task creation
 with st.sidebar:
@@ -60,40 +109,41 @@ with st.sidebar:
             st.error("Task name is required!")
 
 # Main content area
-col1, col2 = st.columns([2, 1])
+st.subheader("Tasks Overview")
 
-with col1:
-    st.subheader("Tasks Overview")
-
-    # Filters
-    filter_col1, filter_col2, filter_col3 = st.columns(3)
-    with filter_col1:
-        filter_category = st.multiselect(
-            "Filter by Category",
-            options=["All"] + list(st.session_state.tasks['category'].unique()),
-            default="All"
-        )
-    with filter_col2:
-        filter_priority = st.multiselect(
-            "Filter by Priority",
-            options=["All"] + list(st.session_state.tasks['priority'].unique()),
-            default="All"
-        )
-    with filter_col3:
-        filter_status = st.multiselect(
-            "Filter by Status",
-            options=["All", "Pending", "In Progress", "Completed"],
-            default="All"
-        )
-
-    # Apply filters
-    filtered_tasks = utils.filter_tasks(
-        st.session_state.tasks,
-        filter_category,
-        filter_priority,
-        filter_status
+# Filters
+filter_col1, filter_col2, filter_col3 = st.columns(3)
+with filter_col1:
+    filter_category = st.multiselect(
+        "Filter by Category",
+        options=["All"] + list(st.session_state.tasks['category'].unique()),
+        default="All"
+    )
+with filter_col2:
+    filter_priority = st.multiselect(
+        "Filter by Priority",
+        options=["All"] + list(st.session_state.tasks['priority'].unique()),
+        default="All"
+    )
+with filter_col3:
+    filter_status = st.multiselect(
+        "Filter by Status",
+        options=["All", "Pending", "In Progress", "Completed"],
+        default="All"
     )
 
+# Apply filters
+filtered_tasks = utils.filter_tasks(
+    st.session_state.tasks,
+    filter_category,
+    filter_priority,
+    filter_status
+)
+
+# Display tasks and statistics in columns
+task_col, stat_col = st.columns([2, 1])
+
+with task_col:
     # Display tasks
     for idx, task in filtered_tasks.iterrows():
         with st.container():
@@ -146,9 +196,8 @@ with col1:
 
             st.markdown("---")
 
-with col2:
+with stat_col:
     st.subheader("Statistics")
-
     # Display statistics and charts
     viz.display_category_distribution(filtered_tasks)
     viz.display_priority_distribution(filtered_tasks)
