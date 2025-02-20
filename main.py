@@ -118,27 +118,33 @@ items_per_page = 5
 total_tasks = len(filtered_tasks)
 total_pages = (total_tasks // items_per_page) + (1 if total_tasks % items_per_page > 0 else 0)
 
+# Initialize session state for pagination
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 1
 
-# Page Navigation
+# Pagination Navigation
 col_prev, col_page, col_next = st.columns([1, 2, 1])
 
 with col_prev:
-    if st.button("⬅️ Previous", disabled=(st.session_state.current_page <= 1)):
-        st.session_state.current_page -= 1
+    if st.session_state.current_page > 1:
+        if st.button("⬅️ Previous"):
+            st.session_state.current_page -= 1
+            st.experimental_rerun()
 
 with col_page:
     st.markdown(f"**Page {st.session_state.current_page} of {total_pages}**")
 
 with col_next:
-    if st.button("➡️ Next", disabled=(st.session_state.current_page >= total_pages)):
-        st.session_state.current_page += 1
+    if st.session_state.current_page < total_pages:
+        if st.button("➡️ Next"):
+            st.session_state.current_page += 1
+            st.experimental_rerun()
 
-# Display Tasks for Current Page
+# Determine Start and End Index for Pagination
 start_idx = (st.session_state.current_page - 1) * items_per_page
 end_idx = start_idx + items_per_page
 
+# Display Tasks for Current Page
 for idx, task in filtered_tasks.iloc[start_idx:end_idx].iterrows():
     with st.container():
         col_status, col_content, col_time = st.columns([0.2, 0.6, 0.2])
@@ -179,3 +185,33 @@ for idx, task in filtered_tasks.iloc[start_idx:end_idx].iterrows():
                 st.write(f"⏱️ Time spent: {task['time_spent']:.1f} min")
 
         st.markdown("---")
+# Summary section at the bottom
+st.markdown("### 📊 Task Summary")
+if len(filtered_tasks) > 0:
+    total_tasks = len(filtered_tasks)
+    completed_tasks = len(filtered_tasks[filtered_tasks['status'] == 'Completed'])
+    in_progress_tasks = len(filtered_tasks[filtered_tasks['status'] == 'In Progress'])
+    pending_tasks = len(filtered_tasks[filtered_tasks['status'] == 'Pending'])
+
+    # Create three columns for the summary
+    sum_col1, sum_col2, sum_col3 = st.columns(3)
+
+    with sum_col1:
+        st.metric("🎯 Total Tasks", total_tasks)
+    with sum_col2:
+        st.metric("✅ Completed", f"{completed_tasks} ({(completed_tasks/total_tasks*100):.1f}%)")
+    with sum_col3:
+        st.metric("⏳ In Progress", f"{in_progress_tasks} ({(in_progress_tasks/total_tasks*100):.1f}%)")
+
+    # Progress bar
+    st.progress(completed_tasks/total_tasks)
+
+    # Task distribution
+    st.markdown(f"""
+    ### Task Distribution
+    - 🟢 **Completed Tasks:** {completed_tasks} ({(completed_tasks/total_tasks*100):.1f}%)
+    - 🟡 **In Progress:** {in_progress_tasks} ({(in_progress_tasks/total_tasks*100):.1f}%)
+    - ⚪ **Pending:** {pending_tasks} ({(pending_tasks/total_tasks*100):.1f}%)
+    """)
+else:
+    st.info("No tasks available to display statistics")
