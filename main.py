@@ -22,7 +22,7 @@ st.title("📝 Daily Activity Tracker")
 # Sidebar for task creation
 with st.sidebar:
     st.header("Add New Task")
-    
+
     task_name = st.text_input("Task Name")
     category = st.selectbox(
         "Category",
@@ -34,7 +34,7 @@ with st.sidebar:
     )
     due_date = st.date_input("Due Date")
     description = st.text_area("Description")
-    
+
     if st.button("Add Task"):
         if task_name:
             new_task = {
@@ -56,7 +56,7 @@ col1, col2 = st.columns([2, 1])
 
 with col1:
     st.subheader("Tasks Overview")
-    
+
     # Filters
     filter_col1, filter_col2, filter_col3 = st.columns(3)
     with filter_col1:
@@ -74,7 +74,7 @@ with col1:
     with filter_col3:
         filter_status = st.multiselect(
             "Filter by Status",
-            options=["All", "Pending", "Completed"],
+            options=["All", "Pending", "In Progress", "Completed"],
             default="All"
         )
 
@@ -89,13 +89,19 @@ with col1:
     # Display tasks
     for idx, task in filtered_tasks.iterrows():
         with st.container():
-            col_check, col_content = st.columns([0.1, 0.9])
-            with col_check:
-                if st.checkbox("", task['status'] == "Completed", key=f"check_{idx}"):
-                    st.session_state.tasks = dh.update_task_status(idx, "Completed")
-                else:
-                    st.session_state.tasks = dh.update_task_status(idx, "Pending")
-            
+            col_status, col_content, col_time = st.columns([0.2, 0.6, 0.2])
+
+            with col_status:
+                status = st.selectbox(
+                    "Status",
+                    options=["Pending", "In Progress", "Completed"],
+                    index=["Pending", "In Progress", "Completed"].index(task['status']),
+                    key=f"status_{idx}",
+                    label_visibility="collapsed"
+                )
+                if status != task['status']:
+                    st.session_state.tasks = dh.update_task_status(idx, status)
+
             with col_content:
                 task_color = utils.get_priority_color(task['priority'])
                 st.markdown(
@@ -110,11 +116,23 @@ with col1:
                     """,
                     unsafe_allow_html=True
                 )
-                st.markdown("---")
+
+            with col_time:
+                if task['status'] == "Completed":
+                    time_spent = task['time_spent']
+                    st.write(f"Time spent: {time_spent:.1f} min")
+                elif task['status'] == "In Progress":
+                    if not pd.isna(task['started_at']):
+                        current_time = datetime.now()
+                        started_time = pd.to_datetime(task['started_at'])
+                        elapsed_time = (current_time - started_time).total_seconds() / 60
+                        st.write(f"Time elapsed: {elapsed_time:.1f} min")
+
+            st.markdown("---")
 
 with col2:
     st.subheader("Statistics")
-    
+
     # Display statistics and charts
     viz.display_category_distribution(filtered_tasks)
     viz.display_priority_distribution(filtered_tasks)
