@@ -151,65 +151,85 @@ filtered_tasks = utils.filter_tasks(
     filter_status
 )
 
-# Display tasks and statistics in columns
-task_col, stat_col = st.columns([2, 1])
+# Display tasks
+for idx, task in filtered_tasks.iterrows():
+    with st.container():
+        col_status, col_content, col_time = st.columns([0.2, 0.6, 0.2])
 
-with task_col:
-    # Display tasks
-    for idx, task in filtered_tasks.iterrows():
-        with st.container():
-            col_status, col_content, col_time = st.columns([0.2, 0.6, 0.2])
+        with col_status:
+            status = st.selectbox(
+                "Status",
+                options=["Pending", "In Progress", "Completed"],
+                index=["Pending", "In Progress", "Completed"].index(task['status']),
+                key=f"status_{idx}",
+                label_visibility="collapsed"
+            )
+            if status != task['status']:
+                st.session_state.tasks = dh.update_task_status(idx, status)
 
-            with col_status:
-                status = st.selectbox(
-                    "Status",
-                    options=["Pending", "In Progress", "Completed"],
-                    index=["Pending", "In Progress", "Completed"].index(task['status']),
-                    key=f"status_{idx}",
-                    label_visibility="collapsed"
-                )
-                if status != task['status']:
-                    st.session_state.tasks = dh.update_task_status(idx, status)
+        with col_content:
+            task_color = utils.get_priority_color(task['priority'])
+            scheduled_start_time = pd.to_datetime(task['scheduled_start']).strftime('%Y-%m-%d %H:%M') if pd.notnull(task.get('scheduled_start')) else 'N/A'
 
-            with col_content:
-                task_color = utils.get_priority_color(task['priority'])
-                scheduled_start_time = pd.to_datetime(task['scheduled_start']).strftime('%Y-%m-%d %H:%M') if pd.notnull(task.get('scheduled_start')) else 'N/A'
+            st.markdown(
+                f"""
+                <div style="border-left: 5px solid {task_color}; padding-left: 10px;">
+                <h4>{task['name']}</h4>
+                <p><strong>Category:</strong> {task['category']} | 
+                <strong>Priority:</strong> <span style="color: {task_color}">{task['priority']}</span></p>
+                <p><strong>Due:</strong> {task['due_date']} |
+                <strong>Created:</strong> {pd.to_datetime(task['created_at']).strftime('%Y-%m-%d %H:%M')} |
+                <strong>Scheduled Start:</strong> {scheduled_start_time}</p>
+                <p>{task['description']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-                st.markdown(
-                    f"""
-                    <div style="border-left: 5px solid {task_color}; padding-left: 10px;">
-                    <h4>{task['name']}</h4>
-                    <p><strong>Category:</strong> {task['category']} | 
-                    <strong>Priority:</strong> <span style="color: {task_color}">{task['priority']}</span></p>
-                    <p><strong>Due:</strong> {task['due_date']} |
-                    <strong>Created:</strong> {pd.to_datetime(task['created_at']).strftime('%Y-%m-%d %H:%M')} |
-                    <strong>Scheduled Start:</strong> {scheduled_start_time}</p>
-                    <p>{task['description']}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+        with col_time:
+            if task['status'] == "Completed":
+                time_spent = task['time_spent']
+                completed_at = pd.to_datetime(task['completed_at']).strftime('%Y-%m-%d %H:%M') if pd.notnull(task['completed_at']) else 'N/A'
+                st.write(f"✅ Completed at: {completed_at}")
+                st.write(f"⏱️ Time spent: {time_spent:.1f} min")
+            elif task['status'] == "In Progress":
+                if not pd.isna(task['started_at']):
+                    current_time = datetime.now()
+                    started_time = pd.to_datetime(task['started_at'])
+                    started_at = started_time.strftime('%Y-%m-%d %H:%M')
+                    elapsed_time = (current_time - started_time).total_seconds() / 60
+                    st.write(f"🚀 Started at: {started_at}")
+                    st.write(f"⏱️ Time elapsed: {elapsed_time:.1f} min")
 
-            with col_time:
-                if task['status'] == "Completed":
-                    time_spent = task['time_spent']
-                    completed_at = pd.to_datetime(task['completed_at']).strftime('%Y-%m-%d %H:%M') if pd.notnull(task['completed_at']) else 'N/A'
-                    st.write(f"✅ Completed at: {completed_at}")
-                    st.write(f"⏱️ Time spent: {time_spent:.1f} min")
-                elif task['status'] == "In Progress":
-                    if not pd.isna(task['started_at']):
-                        current_time = datetime.now()
-                        started_time = pd.to_datetime(task['started_at'])
-                        started_at = started_time.strftime('%Y-%m-%d %H:%M')
-                        elapsed_time = (current_time - started_time).total_seconds() / 60
-                        st.write(f"🚀 Started at: {started_at}")
-                        st.write(f"⏱️ Time elapsed: {elapsed_time:.1f} min")
+        st.markdown("---")
 
-            st.markdown("---")
+# Summary section at the bottom
+st.markdown("### 📊 Task Summary")
+if len(filtered_tasks) > 0:
+    total_tasks = len(filtered_tasks)
+    completed_tasks = len(filtered_tasks[filtered_tasks['status'] == 'Completed'])
+    in_progress_tasks = len(filtered_tasks[filtered_tasks['status'] == 'In Progress'])
+    pending_tasks = len(filtered_tasks[filtered_tasks['status'] == 'Pending'])
 
-with stat_col:
-    st.subheader("Statistics")
-    # Display statistics and charts
-    viz.display_category_distribution(filtered_tasks)
-    viz.display_priority_distribution(filtered_tasks)
-    viz.display_completion_rate(filtered_tasks)
+    # Create three columns for the summary
+    sum_col1, sum_col2, sum_col3 = st.columns(3)
+
+    with sum_col1:
+        st.metric("🎯 Total Tasks", total_tasks)
+    with sum_col2:
+        st.metric("✅ Completed", f"{completed_tasks} ({(completed_tasks/total_tasks*100):.1f}%)")
+    with sum_col3:
+        st.metric("⏳ In Progress", f"{in_progress_tasks} ({(in_progress_tasks/total_tasks*100):.1f}%)")
+
+    # Progress bar
+    st.progress(completed_tasks/total_tasks)
+
+    # Task distribution
+    st.markdown(f"""
+    ### Task Distribution
+    - 🟢 **Completed Tasks:** {completed_tasks} ({(completed_tasks/total_tasks*100):.1f}%)
+    - 🟡 **In Progress:** {in_progress_tasks} ({(in_progress_tasks/total_tasks*100):.1f}%)
+    - ⚪ **Pending:** {pending_tasks} ({(pending_tasks/total_tasks*100):.1f}%)
+    """)
+else:
+    st.info("No tasks available to display statistics")
