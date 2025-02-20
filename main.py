@@ -148,7 +148,7 @@ for idx, task in filtered_tasks.iloc[start_idx:end_idx].iterrows():
                 "Status",
                 options=["Pending", "In Progress", "Completed"],
                 index=["Pending", "In Progress", "Completed"].index(task['status']),
-                key=f"status_{st.session_state.current_page}_{idx}",
+                key=f"status_{task['name']}_{task['created_at']}",
                 label_visibility="collapsed"
             )
             if status != task['status']:
@@ -174,7 +174,8 @@ for idx, task in filtered_tasks.iloc[start_idx:end_idx].iterrows():
 
         with col_time:
             if task['status'] == "Completed":
-                st.write(f"✅ Completed at: {pd.to_datetime(task['completed_at']).strftime('%Y-%m-%d %H:%M')}")
+                completed_at = pd.to_datetime(task['completed_at']) if pd.notnull(task['completed_at']) else 'N/A'
+                st.write(f"✅ Completed at: {completed_at if completed_at == 'N/A' else completed_at.strftime('%Y-%m-%d %H:%M')}")
                 st.write(f"⏱️ Time spent: {task['time_spent']:.1f} min")
 
         st.markdown("---")
