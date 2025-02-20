@@ -109,8 +109,9 @@ with col1:
                     <div style="border-left: 5px solid {task_color}; padding-left: 10px;">
                     <h4>{task['name']}</h4>
                     <p><strong>Category:</strong> {task['category']} | 
-                    <strong>Priority:</strong> <span style="color: {task_color}">{task['priority']}</span> | 
-                    <strong>Due:</strong> {task['due_date']}</p>
+                    <strong>Priority:</strong> <span style="color: {task_color}">{task['priority']}</span></p>
+                    <p><strong>Due:</strong> {task['due_date']} |
+                    <strong>Created:</strong> {pd.to_datetime(task['created_at']).strftime('%Y-%m-%d %H:%M')}</p>
                     <p>{task['description']}</p>
                     </div>
                     """,
@@ -120,13 +121,17 @@ with col1:
             with col_time:
                 if task['status'] == "Completed":
                     time_spent = task['time_spent']
-                    st.write(f"Time spent: {time_spent:.1f} min")
+                    completed_at = pd.to_datetime(task['completed_at']).strftime('%Y-%m-%d %H:%M')
+                    st.write(f"✅ Completed at: {completed_at}")
+                    st.write(f"⏱️ Time spent: {time_spent:.1f} min")
                 elif task['status'] == "In Progress":
                     if not pd.isna(task['started_at']):
                         current_time = datetime.now()
                         started_time = pd.to_datetime(task['started_at'])
+                        started_at = started_time.strftime('%Y-%m-%d %H:%M')
                         elapsed_time = (current_time - started_time).total_seconds() / 60
-                        st.write(f"Time elapsed: {elapsed_time:.1f} min")
+                        st.write(f"🚀 Started at: {started_at}")
+                        st.write(f"⏱️ Time elapsed: {elapsed_time:.1f} min")
 
             st.markdown("---")
 
