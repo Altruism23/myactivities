@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import data_handler as dh
 import visualizations as viz
 import utils
@@ -84,14 +84,25 @@ with st.sidebar:
 
     # Add date and time inputs
     due_date = st.date_input("Due Date")
-    scheduled_start = st.time_input("Scheduled Start Time", value=datetime.now().time())
+
+    # Custom time selection
+    st.write("Scheduled Start Time")
+    time_col1, time_col2 = st.columns(2)
+    with time_col1:
+        hour = st.number_input("Hour (24-hour)", min_value=0, max_value=23, value=datetime.now().hour)
+    with time_col2:
+        minute = st.number_input("Minute", min_value=0, max_value=59, value=datetime.now().minute)
+
+    # Show selected time
+    scheduled_time = time(hour=int(hour), minute=int(minute))
+    st.write(f"Selected time: {scheduled_time.strftime('%H:%M')}")
 
     description = st.text_area("Description")
 
     if st.button("Add Task"):
         if task_name:
             # Combine date and time for scheduled start
-            scheduled_datetime = datetime.combine(due_date, scheduled_start)
+            scheduled_datetime = datetime.combine(due_date, scheduled_time)
 
             new_task = {
                 'name': task_name,
